@@ -2,5 +2,8 @@
 name = "naivechain"
 version = "0.1.0"
 authors = ["olexanderyermakov"]
+include = ["src/*/*", "lib/**/*"]
 
 [dependencies]
+rust-crypto = "0.2.36"
+time = "0.1"
