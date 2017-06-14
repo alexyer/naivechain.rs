@@ -43,16 +43,16 @@ pub mod blockchain {
     #[derive(Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct Blockchain {
-        blockchain: RefCell<Vec<Block>>,
+        blocks: RefCell<Vec<Block>>,
     }
 
     impl Blockchain {
         pub fn new() -> Blockchain {
-            Blockchain { blockchain: RefCell::new(vec![Blockchain::generate_genesis_block()]) }
+            Blockchain { blocks: RefCell::new(vec![Blockchain::generate_genesis_block()]) }
         }
 
         pub fn len(&self) -> usize {
-            self.blockchain.borrow().len()
+            self.blocks.borrow().len()
         }
 
         fn calculate_hash(index: u64, previous_hash: &String, timestamp: u64, data: &String) -> String {
@@ -100,7 +100,7 @@ pub mod blockchain {
         pub fn add_block(&self, block: &Block) -> Result<Block, BlockchainError> {
             match self.is_valid_new_block(block) {
                 true => {
-                    self.blockchain.borrow_mut().push(block.clone());
+                    self.blocks.borrow_mut().push(block.clone());
                     Ok(self.latest_block())
                 }
                 false => Err(BlockchainError::InvalidBlock),
@@ -108,11 +108,11 @@ pub mod blockchain {
         }
 
         pub fn genesis_block(&self) -> Block {
-            self.blockchain.borrow()[0].clone()
+            self.blocks.borrow()[0].clone()
         }
 
         pub fn latest_block(&self) -> Block {
-            let chain = self.blockchain.borrow();
+            let chain = self.blocks.borrow();
             chain[chain.len() - 1].clone()
         }
 
@@ -121,16 +121,16 @@ pub mod blockchain {
                 return false
             }
 
-            let chain = other_chain.blockchain.borrow();
+            let chain = other_chain.blocks.borrow();
 
             (1..chain.len()).all(|i| { self.is_valid_block(&chain[i], &chain[i - 1]) })
         }
 
         pub fn replace_chain(&self, other_chain: &Blockchain) -> Result<&Blockchain, BlockchainError> {
             if other_chain.len() > self.len() && self.is_valid_chain(other_chain) {
-                let new_blockchain = other_chain.blockchain.borrow();
+                let new_blockchain = other_chain.blocks.borrow();
                 let (_, new_blocks_slice) = new_blockchain.as_slice().split_at(self.len());
-                self.blockchain.borrow_mut().extend(new_blocks_slice.to_vec().into_iter());
+                self.blocks.borrow_mut().extend(new_blocks_slice.to_vec().into_iter());
                 Ok(&self)
             } else {
                 Err(BlockchainError::InvalidBlockchain)
