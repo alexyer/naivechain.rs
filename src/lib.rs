@@ -1,6 +1,10 @@
 extern crate crypto;
 extern crate time;
 
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+
 pub mod blockchain {
     use std::cell::RefCell;
     use std::fmt;
@@ -14,7 +18,8 @@ pub mod blockchain {
         InvalidBlock
     }
 
-    #[derive(PartialEq, Debug, Clone)]
+    #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct Block {
         pub index: u64,
         pub previous_hash: String,
@@ -35,6 +40,8 @@ pub mod blockchain {
         }
     }
 
+    #[derive(Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct Blockchain {
         blockchain: RefCell<Vec<Block>>,
     }
