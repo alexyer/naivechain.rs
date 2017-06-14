@@ -6,7 +6,7 @@ extern crate serde_derive;
 extern crate serde;
 
 pub mod blockchain {
-    use std::cell::RefCell;
+    use std::sync::RwLock;
     use std::fmt;
     use crypto::digest::Digest;
     use crypto::sha2::Sha256;
@@ -43,16 +43,17 @@ pub mod blockchain {
     #[derive(Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct Blockchain {
-        blocks: RefCell<Vec<Block>>,
+        blocks: RwLock<Vec<Block>>,
     }
 
     impl Blockchain {
         pub fn new() -> Blockchain {
-            Blockchain { blocks: RefCell::new(vec![Blockchain::generate_genesis_block()]) }
+            Blockchain { blocks: RwLock::new(vec![Blockchain::generate_genesis_block()]) }
         }
 
         pub fn len(&self) -> usize {
-            self.blocks.borrow().len()
+            let blocks = self.blocks.read().unwrap();
+            blocks.len()
         }
 
         fn calculate_hash(index: u64, previous_hash: &String, timestamp: u64, data: &String) -> String {
@@ -82,7 +83,8 @@ pub mod blockchain {
         }
 
         pub fn is_valid_new_block(&self, block: &Block) -> bool {
-            self.is_valid_block(&block, &self.latest_block())
+            let latest_block = &self.latest_block();
+            self.is_valid_block(&block, latest_block)
         }
 
         fn is_valid_block(&self, block: &Block, prev_block: &Block) -> bool {
@@ -100,19 +102,21 @@ pub mod blockchain {
         pub fn add_block(&self, block: &Block) -> Result<Block, BlockchainError> {
             match self.is_valid_new_block(block) {
                 true => {
-                    self.blocks.borrow_mut().push(block.clone());
-                    Ok(self.latest_block())
+                    let mut blocks = self.blocks.write().unwrap();
+                    blocks.push(block.clone());
+                    Ok(block.clone())
                 }
                 false => Err(BlockchainError::InvalidBlock),
             }
         }
 
         pub fn genesis_block(&self) -> Block {
-            self.blocks.borrow()[0].clone()
+            let blocks = self.blocks.read().unwrap();
+            blocks[0].clone()
         }
 
         pub fn latest_block(&self) -> Block {
-            let chain = self.blocks.borrow();
+            let chain = self.blocks.read().unwrap();
             chain[chain.len() - 1].clone()
         }
 
@@ -121,16 +125,17 @@ pub mod blockchain {
                 return false
             }
 
-            let chain = other_chain.blocks.borrow();
+            let chain = other_chain.blocks.read().unwrap();
 
             (1..chain.len()).all(|i| { self.is_valid_block(&chain[i], &chain[i - 1]) })
         }
 
         pub fn replace_chain(&self, other_chain: &Blockchain) -> Result<&Blockchain, BlockchainError> {
             if other_chain.len() > self.len() && self.is_valid_chain(other_chain) {
-                let new_blockchain = other_chain.blocks.borrow();
+                let new_blockchain = other_chain.blocks.read().unwrap();
                 let (_, new_blocks_slice) = new_blockchain.as_slice().split_at(self.len());
-                self.blocks.borrow_mut().extend(new_blocks_slice.to_vec().into_iter());
+                let mut blocks = self.blocks.write().unwrap();
+                blocks.extend(new_blocks_slice.to_vec().into_iter());
                 Ok(&self)
             } else {
                 Err(BlockchainError::InvalidBlockchain)
