@@ -7,3 +7,6 @@ include = ["src/*/*", "lib/**/*"]
 [dependencies]
 rust-crypto = "0.2.36"
 time = "0.1"
+hyper = "*"
+websocket = "*"
+futures = "*"
