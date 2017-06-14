@@ -24,8 +24,8 @@ pub mod blockchain {
     }
 
     impl Block {
-        pub fn new(index: u64, previous_hash: String, timestamp: u64, data: String, hash: String) -> Block {
-            Block { index: index, previous_hash: previous_hash, timestamp: timestamp, data: data, hash: hash }
+        pub fn new<S>(index: u64, previous_hash: S, timestamp: u64, data: S, hash: S) -> Block where S: Into<String> {
+            Block { index: index, previous_hash: previous_hash.into(), timestamp: timestamp, data: data.into(), hash: hash.into() }
         }
     }
 
@@ -64,9 +64,11 @@ pub mod blockchain {
                        "816534932c2b7154836da6afc367695e6337db8a921823784c14378abed4f7d7".to_string())
         }
 
-        pub fn generate_new_block(&self, data: String) -> Block {
+        pub fn generate_new_block<S>(&self, data: S) -> Block where S: Into<String> {
             let new_index = self.latest_block().index + 1;
             let new_timestamp = time::now_utc().to_timespec().sec as u64;
+            let data = data.into();
+
             let new_hash = Blockchain::calculate_hash(new_index, &self.latest_block().hash, new_timestamp, &data);
 
             Block::new(new_index, self.latest_block().hash.clone(), new_timestamp, data, new_hash)
